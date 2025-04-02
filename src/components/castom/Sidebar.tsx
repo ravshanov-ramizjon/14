@@ -1,14 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { RiMusic2Line, RiAddLine, RiArrowRightLine, RiSearchLine, RiListUnordered } from "react-icons/ri";
 import { Button } from "../ui/button";
-
-const playlists = [
-  { id: 1, name: "Любимые треки", type: "Плейлист", desc: "9 треков", image: "/icons/heart-icon.svg" },
-  { id: 2, name: "Мой плейлист № 1", type: "Плейлист", desc: "Ramiz", image: "https://i.scdn.co/image/ab67706c0000da843311c92190b60e9d09828e5f" },
-];
+import { fetchToken } from "./fetchToken";
 
 const Sidebar: React.FC = () => {
-    const [selectedTab, setSelectedTab] = React.useState<number | undefined>(undefined);
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [selectedTab, setSelectedTab] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    async function fetchPlaylists() {
+      try {
+        const token = await fetchToken();
+        const response = await fetch("https://api.spotify.com/v1/browse/featured-playlists", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      
+        const data = await response.json();
+        setPlaylists(data.items || []);
+      } catch (error) {
+        console.error("Ошибка загрузки плейлистов:", error);
+      }
+    }
+
+    fetchPlaylists();
+  }, []);
+
   return (
     <div className="bg-[#121212] text-white h-full w-full p-4 flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-4">
@@ -48,19 +64,23 @@ const Sidebar: React.FC = () => {
       </div>
 
       <div className="flex flex-col flex-grow">
-        {playlists.map(({ id, name, type, desc, image }) => (
-          <div key={id} className="bg-[#282828] rounded-md p-2 mb-2 flex items-center">
-            {image.includes("/icons/") ? (
-              <RiMusic2Line className="h-8 w-8 mr-2 text-[#1DB954]" />
-            ) : (
-              <img src={image} alt={name} className="h-10 w-10 mr-2 rounded-md object-cover" />
-            )}
-            <div>
-              <h3 className="text-md font-medium">{name}</h3>
-              <p className="text-xs text-[#b3b3b3]">{type} • {desc}</p>
+        {playlists.length > 0 ? (
+          playlists.map(({ id, name, owner, images }) => (
+            <div key={id} className="bg-[#282828] rounded-md p-2 mb-2 flex items-center">
+              {images.length > 0 ? (
+                <img src={images[0].url} alt={name} className="h-10 w-10 mr-2 rounded-md object-cover" />
+              ) : (
+                <RiMusic2Line className="h-8 w-8 mr-2 text-[#1DB954]" />
+              )}
+              <div>
+                <h3 className="text-md font-medium">{name}</h3>
+                <p className="text-xs text-[#b3b3b3]">Плейлист • {owner.display_name}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-sm text-[#b3b3b3]">Нет доступных плейлистов</p>
+        )}
       </div>
     </div>
   );

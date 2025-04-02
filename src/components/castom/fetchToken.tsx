@@ -2,14 +2,13 @@ const CLIENT_ID = "802deca6241743b89e0a6d0dabeca6b9";
 const CLIENT_SECRET = "0fb7e37941ba4002aad7b64fdf0cd57e";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 
-// Типизация ответа от Spotify
 interface TokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
 }
 
-// Функция получения токена
+
 export async function fetchToken(): Promise<string> {
   const response = await fetch(TOKEN_URL, {
     method: "POST",
@@ -24,5 +23,5 @@ export async function fetchToken(): Promise<string> {
   });
 
   const data: TokenResponse = await response.json();
-  return data.access_token; // Возвращаем только токен
+  return data.access_token; 
 }
