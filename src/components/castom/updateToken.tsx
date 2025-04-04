@@ -17,7 +17,7 @@ const UpdateTokenButton: React.FC = () => {
 
   return (
     <Button onClick={handleClick} disabled={loading}>
-      {loading ? "Выполняется вход..." : "Войти"}
+      {loading ? "Выполняется вход..." : "Login"}
     </Button>
   );
 };

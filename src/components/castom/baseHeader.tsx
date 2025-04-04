@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { IoHome } from "react-icons/io5";
-import LoginForm from "./formLogin";
 import React from "react";
+import UpdateTokenButton from "./updateToken";
 
 const Header: React.FC = () => {
   return (
@@ -36,7 +36,7 @@ const Header: React.FC = () => {
             Register
           </Link>
         </button>
-        <LoginForm />
+        <UpdateTokenButton />
       </div>
     </header>
   );

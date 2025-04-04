@@ -11,7 +11,7 @@ const Main = () => {
             <Outlet/>
         </main>
         <footer>
-            <Player/>
+            {/* <Player/> */}
             </footer>
     </div>;
 };

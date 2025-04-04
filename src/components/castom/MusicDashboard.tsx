@@ -1,152 +1,163 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "../ui/card";
-import { FaPlay } from "react-icons/fa";
-import { Button } from "../ui/button";
+import { useEffect, useState, useCallback } from "react";
+import MusicCard from "./MusicCard";
+import AlbumDetail from "./AlbumDetail";
 
-const SEARCH_URL = "https://api.spotify.com/v1/search?q=rock&type=artist&limit=5";
-const TOP_TRACKS_URL = (artistId: string) => `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+interface Artist {
+  name: string;
+}
+
+interface Album {
+  id: string;
+  name: string;
+  images: { url: string }[];
+  artists: Artist[];
+}
+
 interface Track {
   id: string;
   name: string;
-  preview_url: string | null;
-  artists: { name: string }[];
-  album: { images: { url: string }[] };
+  album: Album;
+  artists: Artist[];
 }
 
-const fetchTopTracks = async (artistId: string, token: string): Promise<{ id: string; name: string; preview_url: string | null; artist: string; image: string }[]> => {
-  try {
-    const response = await fetch(TOP_TRACKS_URL(artistId), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+interface Category {
+  id: string;
+  name: string;
+}
 
-    if (!response.ok) throw new Error(`Ошибка загрузки треков артиста ${artistId}`);
+const MusicDashboard = () => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [topTracks, setTopTracks] = useState<Track[]>([]);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
 
-    const data = await response.json();
-    return data.tracks.map((track: Track) => ({
-      id: track.id || "unknown-id",
-      name: track.name || "Unknown Track",
-      preview_url: track.preview_url || null,
-      artist: track.artists?.[0]?.name || "Unknown Artist",
-      image: track.album?.images?.[0]?.url || "/placeholder.jpg",
-    }));
-  } catch {
-    return [];
-  }
-};
+  const fetchData = useCallback(
+    async <T,>(endpoint: string, setter: React.Dispatch<React.SetStateAction<T>>, path: string) => {
+      const token = localStorage.getItem("spotify_token");
+      if (!token) {
+        console.error("Токен не найден!");
+        return;
+      }
 
-function Artist() {
-  interface Artist {
-    id: string;
-    name: string;
-    tracks: {
-      id: string;
-      name: string;
-      preview_url: string | null;
-      artist: string;
-      image: string;
-    }[];
-  }
-  
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [savedTracks, setSavedTracks] = useState<{ id: string; name: string; preview_url: string | null; artist: string; image: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("spotify_token");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!token) {
-      navigate("/");
-      return;
-    }
-
-    const fetchArtistsAndTracks = async () => {
       try {
-        setLoading(true);
-        const response = await fetch(SEARCH_URL, {
+        const res = await fetch(`${BASE_URL}/${endpoint}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.ok) throw new Error();
+        if (!res.ok) throw new Error(`Ошибка загрузки: ${res.status}`);
 
-        const data = await response.json();
-        const foundArtists = data.artists.items;
-
-        const artistsWithTracks = await Promise.all(
-          foundArtists.map(async (artist: { id: string; name: string }) => ({
-            ...artist,
-            tracks: await fetchTopTracks(artist.id, token),
-          }))
-        );
-
-        setArtists(artistsWithTracks);
-      } catch {
-        navigate("/");
-      } finally {
-        setLoading(false);
+        const data = await res.json();
+        setter(path.split(".").reduce((acc: any, key) => acc?.[key], data));
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
       }
-    };
-
-    fetchArtistsAndTracks();
-  }, [token, navigate]);
+    },
+    []
+  );
 
   useEffect(() => {
-    localStorage.setItem("savedTracks", JSON.stringify(savedTracks));
-  }, [savedTracks]);
-  
-  const handlePlayTrack = (track: { id: string; name: string; preview_url: string | null; artist: string; image: string }) => {
-    setSavedTracks((prev) => [...(prev || []), track]);
+    fetchData("browse/categories", setCategories, "categories.items");
+    fetchData("browse/new-releases", setAlbums, "albums.items");
+    fetchData(
+      "tracks?market=UZ&ids=7ouMYWpwJ422jRcDASZB7P%2C4VqPOruhp5EdPBeR92t6lQ%2C2takcwOaAZWiXQijPHIx7B",
+      setTopTracks,
+      "tracks"
+    );
+  }, [fetchData]);
+
+  const handleItemClick = async (album: Album, track?: Track) => {
+    const token = localStorage.getItem("spotify_token");
+    if (!token) {
+      console.error("Токен не найден!");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/albums/${album.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error(`Ошибка загрузки альбома: ${res.status}`);
+
+      const albumData = await res.json();
+      localStorage.setItem(`album_${album.id}`, JSON.stringify(albumData));
+
+      if (track) {
+        localStorage.setItem("current_track", JSON.stringify(track));
+      }
+
+      setSelectedAlbumId(album.id);
+    } catch (error) {
+      console.error("Ошибка при загрузке альбома:", error);
+    }
   };
-  const categories = ["Все", "Музыка", "Подкасты"];
-  const [activeCategory, setActiveCategory] = useState("Все");
-artists.flatMap((artist) => console.log(artist));
+
+  if (selectedAlbumId) {
+    return <AlbumDetail albumId={selectedAlbumId} onClose={() => setSelectedAlbumId(null)} />;
+  }
+  const categorieses = [
+    { id: "1", name: "Музыка" },
+    { id: "5", name: "Альбомы" },
+    { id: "2", name: "Подкасты" },
+    { id: "4", name: "Плейлисты" }
+  ];
+
   return (
-    <div className="bg-gradient-to-b from-purple-900 to-black p-6 min-h-screen text-white">
-       <div className="flex gap-2 p-2">
-      {categories.map((category) => (
-        <Button
-          key={category}
-          variant={activeCategory === category ? "default" : "secondary"}
-          className={`rounded-full ${
-            activeCategory !== category ? "bg-opacity-30 text-white bg-white/10 hover:bg-white/14" : ""
-          }`}
-          onClick={() => setActiveCategory(category)}
-        >
-          {category}
-        </Button>
-      ))}
-    </div>
-      <h1 className="text-2xl font-bold mb-4">Только для тебя</h1>
-      {loading ? (
-        <p className="text-center text-lg">Загрузка...</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-          {artists.flatMap((artist) => artist.tracks || []).map((track) =>{
-          return (
-            <Card key={track.id} className="bg-white/0 relative group text-white p-2 border-none hover:bg-white/5">
-              <img src={track.image} alt={track.name} className="w-full h-40 object-cover rounded-lg" />
-              <CardContent className="text-start mt-2 duration-200">
-                <h2 className="text-lg font-semibold">{track.name.substring(0, 10)}</h2>
-                <p className="text-sm text-gray-400">{track.artist}</p>
-              </CardContent>
-              {track.preview_url ? (
-                <div className="absolute bottom-2 right-2 z-10 w-12 h-12 bg-green-500 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button
-                    className="w-full h-full flex items-center justify-center bg-green-500 rounded-full"
-                    onClick={() => track.preview_url && handlePlayTrack(track)}
-                  >
-                    <FaPlay className="w-6 h-6 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <p className="text-end opacity-0 group-hover:opacity-100 text-red-500 transition-opacity duration-200">нет превью</p>
-              )}
-            </Card>
-            )})}
+    <div className="bg-[#121212] min-h-screen p-4 md:p-6 w-full">
+      <h1 className="text-white text-xl md:text-2xl font-bold mb-4">Категории</h1>
+
+      <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide flex-nowrap">
+        {categorieses.map((category) => (
+          <div
+            key={category.id}
+            className="bg-[#282828] px-4 py-2 rounded-lg text-white text-sm md:text-base cursor-pointer hover:bg-[#383838] transition"
+          >
+            {category.name}
+          </div>
+        ))}
+      </div>
+
+
+      <div className="space-y-6">
+        {categories.map((category) => (
+          <>
+            <h2 key={category.id}
+              className="text-white text-xl md:text-2xl font-bold mt-6 mb-4">{category.name}</h2>
+            <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide flex-nowrap">
+              {albums.map((album) => (
+                <MusicCard
+                  key={album.id}
+                  id={album.id}
+                  name={album.name}
+                  imageUrl={album.images[0]?.url || ""}
+                  artists={album.artists.map((artist) => artist.name).join(", ")}
+                  onClick={() => handleItemClick(album)}
+                />
+              ))}
+            </div>
+          </>
+        ))}
+
+
+        <h2 className="text-white text-xl md:text-2xl font-bold mt-6 mb-4">Новые релизы для тебя</h2>
+
+        <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide flex-nowrap">
+          {topTracks.map((track) => (
+            <MusicCard
+              key={track.id}
+              id={track.id}
+              name={track.name}
+              imageUrl={track.album.images[0]?.url || ""}
+              artists={track.artists.map((artist) => artist.name).join(", ")}
+              onClick={() => handleItemClick(track.album, track)}
+            />
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
-}
+};
 
-export default Artist;
+export default MusicDashboard;

@@ -3,8 +3,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import LoginForm from "./formLogin";
 import BaseSidebar from "./baseSidebar";
+import UpdateTokenButton from "./updateToken";
 const LinerImage = "/Linear.png";
 
 const BaseMain = () => {
@@ -24,7 +24,7 @@ const BaseMain = () => {
             <center className="h-auto">
               <h1 className="text-white text-[38px] font-bold">Welcome to Spotify</h1>
               <p className="text-white text-[28px] pb-10">Millions of songs. Free on Spotify.</p>
-              <LoginForm />
+              <UpdateTokenButton />
             </center>
           </div>
         </ResizablePanel>

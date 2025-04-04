@@ -8,20 +8,28 @@ interface TokenResponse {
   expires_in: number;
 }
 
-
 export async function fetchToken(): Promise<string> {
-  const response = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-    }),
-  });
+  try {
+    const response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+      }),
+    });
 
-  const data: TokenResponse = await response.json();
-  return data.access_token; 
+    if (!response.ok) {
+      throw new Error(`Ошибка при получении токена: ${response.statusText}`);
+    }
+
+    const data: TokenResponse = await response.json();
+    return data.access_token; 
+  } catch (err) {
+    console.error("Ошибка получения токена:", err);
+    throw err; 
+  }
 }

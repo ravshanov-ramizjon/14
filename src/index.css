@@ -118,3 +118,17 @@
     @apply bg-background text-foreground;
   }
 }
+/* Скрытие скроллбара для Webkit (Chrome, Safari) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Скрытие скроллбара для Firefox */
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+/* Скрытие скроллбара для Internet Explorer и Edge */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+}

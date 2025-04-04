@@ -1,4 +1,3 @@
-import ArtistsPage from "@/components/castom/MusicDashboard";
 import React from "react";
 import {
     ResizableHandle,
@@ -6,6 +5,7 @@ import {
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import Sidebar from "@/components/castom/Sidebar";
+import NewReleases from "@/components/castom/MusicDashboard";
 
 interface HomeProps {
 
@@ -18,15 +18,15 @@ const Home: React.FC<HomeProps> = () => {
             <ResizablePanelGroup direction="horizontal">
                 <ResizablePanel className="overflow-hidden"
                     defaultSize={25}
-                    minSize={5}
+                    minSize={4}
                     maxSize={50}
                     collapsible={false}
                 >
                     <Sidebar />
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel  className="overflow-auto">
-                    <ArtistsPage />
+                <ResizablePanel className="overflow-auto">
+                    <NewReleases/>
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>
